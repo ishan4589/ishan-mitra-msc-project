@@ -26,6 +26,10 @@ This repository was produced for an Independent Research Project at Imperial
 College London. The project was supervised by Dr Claire Heaney and Professor
 Christopher Pain.
 
+The project was originally developed in a university-hosted GitHub repository and
+moved to this personal account after it finished, so its development commit
+history was not carried over.
+
 ## Installation
 
 Python 3.10 or later is required.
