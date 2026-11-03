@@ -1,0 +1,16 @@
+# results are regenerable; the manifest in each run directory records provenance
+results/
+
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+
+# jupyter
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store

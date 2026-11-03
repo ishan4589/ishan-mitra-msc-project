@@ -1,0 +1,41 @@
+name: irp-env
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+
+dependencies:
+  # Python
+  - python=3.11
+
+  # Core scientific stack
+  - "numpy<2"
+  - scipy
+  - pandas
+  - matplotlib
+
+  # PyTorch (CPU-only build)
+  - pytorch
+  - torchvision
+  - torchaudio
+  - cpuonly
+
+  # scikit-learn ecosystem
+  - scikit-learn
+  - scikit-image        # image processing utilities
+  - joblib              # parallel processing (used by sklearn internally)
+
+  # Jupyter / notebook support
+  - jupyterlab
+  - ipykernel
+  - ipywidgets
+
+  # Useful extras
+  - tqdm                # progress bars
+  - seaborn             # statistical plotting (builds on matplotlib)
+  - statsmodels         # regression diagnostics, useful for OECD-type work
+
+  # pip fallback (for packages not on conda)
+  - pip
+  - pip:
+    - torchsummary      # model summary utility

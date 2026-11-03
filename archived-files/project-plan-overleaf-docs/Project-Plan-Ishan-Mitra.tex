@@ -1,0 +1,159 @@
+\documentclass[project-plan]{report-template}
+
+\usepackage{graphicx} % Required for inserting images
+\usepackage[HTML]{xcolor}
+\usepackage{amsmath} 
+\usepackage{float}
+\usepackage[section]{placeins}
+
+\usepackage{verbatim}
+\newcommand{\detailtexcount}[1]{%
+  \immediate\write18{texcount -sub=section -merge -sum -q #1.tex > #1.wcdetail }%
+  \verbatiminput{#1.wcdetail}%
+}
+
+\usepackage{amsmath}  % cases environment, \text, \dfrac
+\usepackage{amssymb}  % \mathbb (for \mathbb{R})
+
+\usepackage{tabularx}
+\usepackage{booktabs}
+
+%python colours
+\definecolor{pyblue}{HTML}{1F77B4}
+\definecolor{pyorange}{HTML}{FF7F0E}
+\definecolor{pygreen}{HTML}{2CA02C}
+\definecolor{pyred}{HTML}{D62728}
+
+% Metadata used for the title page - please modify.
+\university{Imperial College London}
+\department{Department of Earth Science and Engineering}
+\course{MSc in Environmental Data Science and Machine Learning}
+\title{Solving Inverse Problems in Bio-Physics Using Neural Physics}
+\author{Ishan Mitra}
+\email{imitra694@gmail.com}
+\githubusername{ishan4589}
+\supervisors{Dr Claire Heaney\\
+             Professor Christopher Pain}
+
+\begin{document}
+
+\maketitlepage  % generate title page
+
+\section{Abstract}
+
+ Using surface electromyography (sEMG) readings to determine underlying information about current distribution of muscle fibres is critical for monitoring muscle health, without the need for invasive procedures. It can be challenging, and sometimes impossible to obtain these underlying parameters. Hence, this paper uses the neural physics approach outlined in Chen et al.~\cite{chen2026}, to solve the forward problem of generating realistic, synthetic sEMG readings given a ground truth parameter that we set manually. In the inverse problem, we attempt to retrieve this parameter from our synthetic readings, by computing a data misfit and iteratively improving our guess for the parameter.
+ 
+
+\section{Problem Description}
+
+In this problem, we attempt to use surface electromyography results, which are obtained by electrodes placed on the skin of the forearm, to retrieve information about the underlying transmembrane current distribution causing these readings.
+
+\subsection{Significance}
+The study of electrical activity within muscle cells, muscle electrophysiology, is a critical area when assessing muscle health. We prefer to avoid invasive procedures that can involve breaking the skin barrier, as they increase recovery time and introduce the risk of complications. This motivates our inverse problem; given our surface electromyography (sEMG) readings, which measure the electric potential generated, can we find out key information about the muscle such as the underlying transmembrane current distribution and tissue conductivities? Knowing these parameters can be vital for assessing muscle health and retrieving them with this method can circumnavigate the need for invasive procedures. 
+
+
+\subsection{Literature review}
+We can use solutions of the Maxwell's equations to obtain properties of bioelectric currents. Surface electromyography uses surface electrodes applied directly to the skin, to detect and record the electrical activity produced by muscle fibres. The low frequencies of signal sources that we read from the electrodes allow us to ignore the physical effects which couple electricity to magnetism. Therefore, we can apply the quasi-static assumption to the Maxwell equations ~\cite{plonsey1977}, ~\cite{plonsey1967} and our sEMG volume-conductor forward problem reduces to a Poisson partial differential equation.~\cite{mesin2013} We apply a homogeneous Neumann boundary condition to reflect our assumption that the skin-air interface is the insulating boundary, so no current flows between the skin and air. Hence, we arrive at the following equation:~\cite{maksymenko2023}:
+
+\begin{equation}
+\begin{cases}
+\nabla \cdot (\sigma \nabla \phi) = -I & \text{in } \Omega \\
+\sigma \dfrac{\partial \phi}{\partial \mathbf{n}}
+  = \sigma \nabla \phi \cdot \mathbf{n} = 0 & \text{on } \partial \Omega
+\end{cases}
+\end{equation}
+
+where, \newline
+$\Omega \subset \mathbb{R}^3$ is a volume conductor domain of interest, \newline$\partial \Omega$ is the boundary of the volume conductor boundary, \newline $\mathbf{n}$ is the outward pointing normal unit vector, \newline $\phi(\mathbf{x})[V]$ is the electric potential we measure at the surface electrodes, \newline $I(\mathbf{x})[A/m^3]$ is the current source density (CSD), \newline $\sigma(\mathbf{x})[S/m]$ is a conductivity tensor.
+
+The current source density $I(\mathbf{x})$ is interpreted as the current density entering or leaving the extracellular medium at position $\mathbf{x} \in \Omega$, by flowing across the sarcolemma (the cell membrane surrounding the muscle fibre). We determine what is a source or a sink from the perspective of the tissue surrounding the muscle fibre (the extracellular viewpoint). A negative CSD indicates a sink, so current is leaving the extracellular medium. Whereas, a positive value indicates a source because current is entering the medium.~\cite{nicholson1975},~\cite{pettersen2012}
+
+Borcea's review of electrical impedance tomography (EIT)~\cite{borcea2002} provides a useful analogue for our inverse problem. This paper seeks to retrieve the conductivity tensor $\sigma$, which is a non-linear inversion task because $\sigma$ sits inside the operator. This differs from our paper, where we attempt to recover $I$ instead. Hence, in our approach we will take $\sigma$ to be a constant. Therefore, we can factor it out and our equation simplifies to,
+
+$$
+\sigma \nabla^2 \phi(x) = -I(x).
+$$
+
+We can represent our equation as a linear system; $A \phi = -I$, where $A$ is the discretisation of the $\sigma \nabla^2$ operator. Therefore, the recovery of $I$ is a linear inversion task. Since, we can set up the surface EMG forward problem as a Poisson equation as outlined above~\cite{mesin2013}, this allows us to use the Neural Physics approach of Chen et al.~\cite{chen2026} for our task. Each convolutional layer applies the discrete operator $A$ through a kernel whose fixed weights are the discretisation stencil; a Jacobi or multigrid iterative solver calls this layer repeatedly to solve for $\phi$.
+
+We believe this paper's novelty lies in the use of the Neural Physics approach to solve for the electrical potential, which will allow us to tackle the bioelectric inverse problem, where we attempt to retrieve $I$ from only surface electrode readings.
+
+\subsection{Objectives}
+This area of research requires a ground-truth for the transmembrane current distribution $I$, however, this can be challenging or impossible to obtain. Therefore, our first objective is to generate realistic, synthetic EMG readings $\phi_{\text{obs}}$ from a ground truth we manually set $I_{\text{true}}$, which is our forward problem. This motivates the second objective, where we iteratively improve our guess for the transmembrane current distribution $\hat{I}$, by minimising a loss function with respect to the ground-truth $I_{\text{true}}$. This is the core of the inverse problem.
+
+\section{Provisional Methodology}
+
+\subsection{The Forward Problem}
+We will start by considering the simplest case of the problem, where we let the conductivity tensor be the identity matrix, $\sigma = I_3 = \begin{pmatrix} 1 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 1 \end{pmatrix}$. This simplifies the conductivity-weighted operator to be the Laplacian $\nabla^2 \phi = \partial_{xx}\phi + \partial_{yy}\phi + \partial_{zz}\phi$. Leaving $\sigma$ as the identity, we assume $\sigma$ to be homogeneous (have the same conductivity throughout the medium) and isotropic (the conductivity of the muscle tissue is invariant of the orientation).
+
+Therefore, our equation simplifies from,
+$$
+\sigma \nabla^2 \phi(x) = -I(x)
+$$
+
+to
+
+$$
+\nabla^2 \phi(x) = -I(x)
+$$
+
+where $I \neq 0$, $x \in \mathbb{R}^3$.
+
+Under these strict assumptions, the equation admits an analytical solution~\cite{mesin2013} which allows us to perform solution verification for our initial discretisation. However, as we relax our assumptions as the paper progresses, an analytical solution is no longer guaranteed.
+
+We will discretise the Laplacian $\nabla^2 \phi = \partial_{xx}\phi + \partial_{yy}\phi + \partial_{zz}\phi$ by applying the 3-point second-order central difference scheme along each axis independently.  For an interior node $(i, j, k)$:
+
+$$
+\nabla^2 \phi_{i,j,k} \approx \frac{1}{h^2}\Big[\big(\phi_{i+1,j,k} - 2\phi_{i,j,k} + \phi_{i-1,j,k}\big) + \big(\phi_{i,j+1,k} - 2\phi_{i,j,k} + \phi_{i,j-1,k}\big) + \big(\phi_{i,j,k+1} - 2\phi_{i,j,k} + \phi_{i,j,k-1}\big)\Big]
+$$
+
+Grouping the contributions from all 3 axes yields the 7-point stencil above. There is a weight of $-6$ is on the centre node and $1$ on each of its neighbours in the 3 spatial directions, all scaled by $1/h^2$. These coefficients will be the weights in the $3 \times 3 \times 3$ kernel that we set analytically.~\cite{chen2026}
+
+We prefer to apply the operator as a convolution with the stencil kernel instead of forming $A$ and computing the dense product $A\phi$ due to the former being more memory efficient. The use of convolutional layers in this way also exploits sparsity because the convolution itself is the sparse operator, which avoids the need to traverse the zeroes. Whereas, the dense product spends most of its operations multiplying by zero. So, as we increase the resolution of our discretisation matrix, the neural physics approach will pay dividends and hence, it earns its place in the forward problem.
+
+We set our current source density $I$ to be a realistic ground-truth parameter $I_{\text{true}}$, and use it to solve our linear system to compute the surface potential $\phi_{\text{obs}}$ i.e. $\phi_{\text{obs}} = A^{-1} (-I_{\text{true}})$. This will be our synthetic data. We will lean on multigrid methods as our chosen iterative method to compute our $\phi$, due to its computational efficiency~\cite{chen2026} and ability to remove low frequency errors.
+
+\subsection{The Inverse Problem}
+It is important to note $I \neq 0$ must hold, otherwise the equation would yield the trivial solution of a flat potential field i.e. $\phi$ is constant, so there would be nothing to invert.
+
+In the inverse solve, given our synthetic sEMG readings $\phi_{\text{obs}}$, we try to deduce the underlying $I$. The method works by initialising a guess $\hat{I}$, from this we compute our predicted surface electrode readings $\phi_{\text{pred}}$, which itself involves many iterations of a solver such as multigrid. We then attempt to minimise the data misfit between our $\phi_{\text{obs}}$ and $\phi_{\text{pred}}$, this step computes $\frac{\partial L}{\partial \hat{I}}
+$ to update our guess for $I$ by using an optimiser. Therefore, the whole workflow is a nested loop.
+
+Another significant advantage of the neural physics approach~\cite{chen2026} here is that it yields a fully differentiable solver. By using Pytorch's convolution operation, we allow their autograd machinery~\cite{paszke2019} to differentiate through, which makes the entire forward solve differentiable and the inverse problem tractable. Therefore, we can differentiate the loss with respect to the entire current field $\frac{\partial L}{\partial \hat{I}}$, in order to update $\hat{I}$.
+
+\newpage
+
+\section{Future Plan}
+
+\begin{table}[ht]
+\centering
+\caption{Provisional progression of project objectives}
+\label{tab:project-plan}
+\begin{tabularx}{\textwidth}{@{}lX@{}}
+\toprule
+\textbf{Week} & \textbf{Goal} \\
+\midrule
+\texttt{[Weeks 1--3]} & First consider the scenario where we take the tissue conductivity tensor $\sigma$ to be homogeneous and isotropic. This will be implemented on a structured 3D grid. \\
+\addlinespace
+\texttt{[Weeks 3--4]} & We will see how this simulation performs under increasing ill-posedness by introducing obstacles such as sparse surface measurements (fewer electrodes) and injecting noise. \\
+\addlinespace
+\texttt{[Weeks 4--5]} & Attempt to implement the discretisation on a distorted grid, to better obey the curvature of the forearm. \\
+\addlinespace
+\texttt{[Weeks 5--7]} & Loosen the assumption of isotropy and let $\sigma$ be anisotropic. We know the conductivity along fibres is roughly five times stronger than in the orthogonal directions.~\cite{mesin2013}\\
+\addlinespace
+\texttt{[Weeks 7--9]} & Loosen the homogeneity assumption to consider piecewise homogeneity because different layers such as muscle, bone, fat and skin all have different conductivity values. \\
+\addlinespace
+\texttt{[Weeks 9--12]} & Attempt to implement the finite element method to discretise the domain $\Omega$ as a tetrahedral mesh, to more realistically model the forearm.~\cite{knabner2003} This is an ambitious goal.\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Deliverables}
+
+ Deliverables include notebooks for the end-to-end simulations as we consider increasingly realistic scenarios and critical analysis of the results as we progressively loosen our initial assumptions.
+
+\bibliographystyle{unsrt}
+\bibliography{references} 
+
+
+\end{document}
